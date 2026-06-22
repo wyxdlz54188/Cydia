@@ -142,6 +142,7 @@ jobs:
         BREW_PREFIX=$(brew --prefix)
         export PATH="$BREW_PREFIX/opt/gnu-tar/libexec/gnubin:$PATH"
         $BREW_PREFIX/bin/bash ./sysroot.sh
+        git clone --depth 1 https://github.com/ElectraJailbreak/apt.git apt
 
     - name: Build Cydia
       run: |
