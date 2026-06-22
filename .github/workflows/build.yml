@@ -19,7 +19,7 @@ jobs:
 
     - name: Install Theos dependencies
       run: |
-        brew install make dpkg libffi ldid
+        brew install make dpkg libffi ldid wget xz gnu-tar
 
     - name: Setup Theos
       run: |
@@ -135,6 +135,12 @@ jobs:
         with open(tbd_path, 'w') as f:
             f.write('\n'.join(lines) + '\n')
         PYEOF
+
+    - name: Setup sysroot and version
+      run: |
+        echo '#define CYDIA_VERSION "1.1.35-1"' > Version.h
+        export PATH="/opt/homebrew/opt/gnu-tar/libexec/gnubin:$PATH"
+        bash ./sysroot.sh
 
     - name: Build Cydia
       run: |
