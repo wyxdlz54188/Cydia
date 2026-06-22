@@ -1,9 +1,8 @@
-name: Build Cydia iOS with Theos
+name: Build Cydia iOS
 
 on:
   push:
     branches: [ main, master ]
-  workflow_dispatch:
 
 jobs:
   build:
@@ -20,33 +19,61 @@ jobs:
 
     - name: Install dependencies
       run: |
-        brew install make dpkg ldid libffi
+        brew install make dpkg libffi ldid
 
     - name: Setup Theos
       run: |
         git clone --recursive --depth 1 https://github.com/theos/theos.git $HOME/theos
-        git clone --recursive --depth 1 https://github.com/theos/sdks.git $HOME/theos/sdks
         echo "THEOS=$HOME/theos" >> $GITHUB_ENV
         echo "$HOME/theos/bin" >> $GITHUB_PATH
-
+        
     - name: Download iOS SDK
       run: |
-        echo "Downloading iOS SDK..."
-        cd $THEOS/sdks
-        curl -L -o iPhoneOS16.2.sdk.tar.xz "https://github.com/theos/sdks/raw/master/iPhoneOS16.2.sdk.tar.xz"
+        mkdir -p $THEOS/sdks
+        echo "=== Downloading iPhoneOS SDK ==="
+        cd /tmp
+        curl -L -o iPhoneOS16.2.sdk.tar.xz "https://github.com/wyxdlz54188/Old_IOS_TERM/releases/download/sdk-v1.0/iPhoneOS16.2.sdk.tar.xz"
+        echo "Downloaded file: $(ls -lh iPhoneOS16.2.sdk.tar.xz)"
+        echo "Unzipping..."
         tar -xf iPhoneOS16.2.sdk.tar.xz
-        rm iPhoneOS16.2.sdk.tar.xz
+        echo ""
+        echo "=== Files after unzip ==="
+        ls -la
+        
+        # The SDK extracts to sdk directory, move it
+        echo "Moving SDK to $THEOS/sdks/iPhoneOS16.2.sdk..."
+        find . -maxdepth 1 -type d -name "iPhoneOS*.sdk" -exec mv {} $THEOS/sdks/ \;
+        mv *.sdk $THEOS/sdks/ 2>/dev/null || true
+        
+        # Cleanup
+        rm -f iPhoneOS16.2.sdk.tar.xz
+        
+        echo ""
+        echo "=== SDKs in THEOS ==="
         ls -la $THEOS/sdks/
-
+        echo ""
+        echo "SDK structure:"
+        ls $THEOS/sdks/iPhoneOS16.2.sdk/ 2>/dev/null | head -20
+        
     - name: Build Cydia
       run: |
         export THEOS="$HOME/theos"
         export PATH="$THEOS/bin:$PATH"
+        export DEVELOPER_DIR="$THEOS"
         export LANG=C
+        
+        # Configure make to use Theos SDK
+        export SDKROOT="$THEOS/sdks/iPhoneOS16.2.sdk"
+        export ARCHS="arm64"
+        export TARGET="iphoneos-arm64"
+        
+        echo "Building with:"
+        echo "  THEOS=$THEOS"
+        echo "  SDKROOT=$SDKROOT"
+        echo "  ARCHS=$ARCHS"
+        echo "  TARGET=$TARGET"
+        
         make package
-
-    - name: List packages
-      run: |
         ls -la packages/
 
     - name: Upload Cydia deb
