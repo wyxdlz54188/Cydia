@@ -148,8 +148,13 @@ jobs:
 
     - name: Fix WebCoreThread dependency
       run: |
+        # Remove WebThreadLocked usage in dispatchEvent.mm
         sed -i '' '/WebThreadLocked/d' CyteKit/dispatchEvent.mm
-        sed -i '' '/#include "WebCore\/WebCoreThread.h"/d' CyteKit/WebThreadLocked.hpp
+        # Remove include in WebViewController.mm
+        sed -i '' '/WebCore\/WebCoreThread.h/d' CyteKit/WebViewController.mm
+        # Comment out WebThreadLock/Unlock calls in WebThreadLocked.hpp
+        sed -i '' 's/WebThreadLock();/\/\/ WebThreadLock();/' CyteKit/WebThreadLocked.hpp
+        sed -i '' 's/WebThreadUnlock();/\/\/ WebThreadUnlock();/' CyteKit/WebThreadLocked.hpp
 
     - name: Set default version
       run: |
