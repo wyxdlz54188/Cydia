@@ -24,7 +24,8 @@ jobs:
 
     - name: Prepare sysroot
       run: |
-        /opt/homebrew/bin/bash ./sysroot.sh
+        BASH_PATH=$(brew --prefix bash)/bin/bash
+        $BASH_PATH ./sysroot.sh
 
     - name: Build Cydia
       run: |
