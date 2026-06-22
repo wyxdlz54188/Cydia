@@ -145,6 +145,9 @@ jobs:
         cp -r "$SDK/usr/lib/libicucore.*" sysroot/usr/lib/ 2>/dev/null || true
         mkdir -p sysroot/System/Library/Frameworks
         cp -r "$SDK/System/Library/Frameworks"/* sysroot/System/Library/Frameworks/ 2>/dev/null || true
+        mkdir -p sysroot/usr/include/WebCore
+        curl -L -o sysroot/usr/include/WebCore/WebCoreThread.h \
+          "http://www.opensource.apple.com/source/WebCore/WebCore-658.28/wak/WebCoreThread.h?txt"
 
     - name: Set default version
       run: |
