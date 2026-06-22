@@ -152,6 +152,8 @@ jobs:
         sed -i '' '/WebThreadLocked/d' CyteKit/dispatchEvent.mm
         # Remove include in WebViewController.mm
         sed -i '' '/WebCore\/WebCoreThread.h/d' CyteKit/WebViewController.mm
+        # Remove include in WebThreadLocked.hpp
+        sed -i '' '/WebCore\/WebCoreThread.h/d' CyteKit/WebThreadLocked.hpp
         # Comment out WebThreadLock/Unlock calls in WebThreadLocked.hpp
         sed -i '' 's/WebThreadLock();/\/\/ WebThreadLock();/' CyteKit/WebThreadLocked.hpp
         sed -i '' 's/WebThreadUnlock();/\/\/ WebThreadUnlock();/' CyteKit/WebThreadLocked.hpp
