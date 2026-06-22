@@ -184,6 +184,7 @@ jobs:
     - name: Fix IOKit compatibility
       run: |
         sed -i '' 's/kIOMasterPortDefault/kIOMainPortDefault/g' CyteKit/CyteObject.mm
+        printf '\ncycc += -F sysroot/System/Library/Frameworks\ncycc += -F sysroot/System/Library/PrivateFrameworks\n' >> makefile
 
     - name: Build Cydia
       run: |
