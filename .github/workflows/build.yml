@@ -157,6 +157,8 @@ jobs:
         # Comment out WebThreadLock/Unlock calls in WebThreadLocked.hpp
         sed -i '' 's/WebThreadLock();/\/\/ WebThreadLock();/' CyteKit/WebThreadLocked.hpp
         sed -i '' 's/WebThreadUnlock();/\/\/ WebThreadUnlock();/' CyteKit/WebThreadLocked.hpp
+        # Fix type mismatch in WebViewController.mm line 1201
+        sed -i '' 's/NSObject \*target(\[CyteWebViewController class\]);/Class target = [CyteWebViewController class];/' CyteKit/WebViewController.mm
 
     - name: Set default version
       run: |
