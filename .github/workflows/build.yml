@@ -150,6 +150,10 @@ jobs:
       run: |
         echo '#define CYDIA_VERSION "1.1.35-1"' > Version.h
 
+    - name: Disable armv6 build
+      run: |
+        sed -i '' '114,119s/^/#/' makefile
+
     - name: Build Cydia
       run: |
         export PATH="$HOME/theos/bin:$PATH"
