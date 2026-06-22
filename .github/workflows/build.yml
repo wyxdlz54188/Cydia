@@ -32,46 +32,48 @@ jobs:
         mkdir -p $THEOS/sdks
         echo "=== Downloading iPhoneOS SDK ==="
         cd /tmp
-        curl -L -o iPhoneOS16.2.sdk.tar.xz "https://github.com/wyxdlz54188/Old_IOS_TERM/releases/download/sdk-v1.0/iPhoneOS16.2.sdk.tar.xz"
-        echo "Downloaded file: $(ls -lh iPhoneOS16.2.sdk.tar.xz)"
-        echo "Unzipping..."
-        tar -xf iPhoneOS16.2.sdk.tar.xz
-        echo ""
-        echo "=== Files after unzip ==="
-        ls -la
+        curl -L -o iPhoneOS16.2.sdk.tar.xz "https://github.com/wyxdlz54188/Old_IOS_TERM/releases/download/sdk-v1.0/iPhoneOS16.2.sdk.tar.xz" || {
+          echo "Failed to download from Old_IOS_TERM, trying alternative..."
+          curl -L -o iPhoneOS16.2.sdk.tar.xz "https://github.com/xybp888/iOS-SDKs/archive/refs/heads/master.tar.gz" && \
+          tar -xf master.tar.gz && mv iOS-SDKs-master/iPhoneOS16.2.sdk $THEOS/sdks/ && rm -rf iOS-SDKs-master master.tar.gz || \
+          echo "SDK download failed, will try with available SDK"
+        }
         
-        # The SDK extracts to sdk directory, move it
-        echo "Moving SDK to $THEOS/sdks/iPhoneOS16.2.sdk..."
-        find . -maxdepth 1 -type d -name "iPhoneOS*.sdk" -exec mv {} $THEOS/sdks/ \;
-        mv *.sdk $THEOS/sdks/ 2>/dev/null || true
+        # Check what's in the download
+        ls -la $THEOS/sdks/ 2>/dev/null || echo "No SDK found in THEOS/sdks"
         
-        # Cleanup
-        rm -f iPhoneOS16.2.sdk.tar.xz
-        
+        # If no SDK downloaded, check available Xcode SDKs
+        if [ ! -d "$THEOS/sdks/iPhoneOS16.2.sdk" ]; then
+          echo "Using Xcode's built-in iOS SDK instead..."
+          SDK_PATH=$(xcodebuild -sdk iphoneos -version Path 2>/dev/null || echo "")
+          if [ -n "$SDK_PATH" ]; then
+            echo "Found SDK at: $SDK_PATH"
+            # Extract and copy to THEOS for reference
+            SDK_NAME=$(basename "$SDK_PATH" .sdk)
+            echo "SDK will be used from: $SDK_PATH"
+            echo "Available SDKs:"
+            xcodebuild -showsdks
+          fi
+        fi
         echo ""
-        echo "=== SDKs in THEOS ==="
-        ls -la $THEOS/sdks/
-        echo ""
-        echo "SDK structure:"
-        ls $THEOS/sdks/iPhoneOS16.2.sdk/ 2>/dev/null | head -20
+        echo "=== Final SDKs list ==="
+        ls -la $THEOS/sdks/ 2>/dev/null
         
     - name: Build Cydia
       run: |
         export THEOS="$HOME/theos"
         export PATH="$THEOS/bin:$PATH"
-        export DEVELOPER_DIR="$THEOS"
         export LANG=C
         
-        # Configure make to use Theos SDK
-        export SDKROOT="$THEOS/sdks/iPhoneOS16.2.sdk"
-        export ARCHS="arm64"
-        export TARGET="iphoneos-arm64"
+        # Get the actual SDK path from Xcode
+        export SDKROOT=$(xcodebuild -sdk iphoneos -version Path)
+        export DEVELOPER_DIR=$(xcode-select -p)
         
         echo "Building with:"
         echo "  THEOS=$THEOS"
         echo "  SDKROOT=$SDKROOT"
-        echo "  ARCHS=$ARCHS"
-        echo "  TARGET=$TARGET"
+        echo "  DEVELOPER_DIR=$DEVELOPER_DIR"
+        echo "  ARCHS=arm64"
         
         make package
         ls -la packages/
