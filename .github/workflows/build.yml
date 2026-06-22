@@ -105,15 +105,11 @@ jobs:
             if not fname.endswith('.dylib'): continue
             syms = extract_exported_symbols(SYSTEM_LIB + '/' + fname)
             all_syms.update(syms)
-            print(f"  {fname}: {len(syms)}")
 
         util_path = USR_LIB + '/libutil.dylib'
         if os.path.exists(util_path):
             syms = extract_exported_symbols(util_path)
             all_syms.update(syms)
-            print(f"  libutil.dylib: {len(syms)}")
-
-        print(f"Total: {len(all_syms)} symbols")
 
         symbols_sorted = sorted(all_syms)
         lines = []
@@ -138,9 +134,21 @@ jobs:
         tbd_path = SDK + '/usr/lib/libSystem_syms.tbd'
         with open(tbd_path, 'w') as f:
             f.write('\n'.join(lines) + '\n')
-
-        print(f"Written: {tbd_path}")
         PYEOF
+
+    - name: Create sysroot
+      run: |
+        SDK=$THEOS/sdks/iPhoneOS6.0.sdk
+        mkdir -p sysroot/usr/lib
+        cp -r "$SDK/usr/lib/system" sysroot/usr/lib/
+        cp -r "$SDK/usr/lib/libSystem.*" sysroot/usr/lib/ 2>/dev/null || true
+        cp -r "$SDK/usr/lib/libicucore.*" sysroot/usr/lib/ 2>/dev/null || true
+        mkdir -p sysroot/System/Library/Frameworks
+        cp -r "$SDK/System/Library/Frameworks"/* sysroot/System/Library/Frameworks/ 2>/dev/null || true
+
+    - name: Set default version
+      run: |
+        echo '#define CYDIA_VERSION "1.1.35-1"' > Version.h
 
     - name: Build Cydia
       run: |
