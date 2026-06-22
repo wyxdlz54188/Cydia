@@ -151,7 +151,7 @@ jobs:
         # Download CFUniChar.h
         mkdir -p sysroot/System/Library/Frameworks/CoreFoundation.framework/Headers
         curl -L -o sysroot/System/Library/Frameworks/CoreFoundation.framework/Headers/CFUniChar.h \
-          "https://opensource.apple.com/source/CF/CF-185.2/CoreFoundation дык/CFUniChar.auto.html?txt" 2>/dev/null || \
+          "https://opensource.apple.com/source/CF/CF-185.2/CoreFoundation/CFUniChar.auto.html?txt" 2>/dev/null || \
         curl -L -o sysroot/System/Library/Frameworks/CoreFoundation.framework/Headers/CFUniChar.h \
           "https://raw.githubusercontent.com/phracker/MacOSX-SDKs/master/SDKs/MacOSX10.13.sdk/System/Library/Frameworks/CoreFoundation.framework/Versions/A/Headers/CFUniChar.h" 2>/dev/null || true
         # Create minimal CFUniChar.h stub if download failed
