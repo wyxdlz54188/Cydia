@@ -140,7 +140,8 @@ jobs:
       run: |
         echo '#define CYDIA_VERSION "1.1.35-1"' > Version.h
         export PATH="/opt/homebrew/opt/gnu-tar/libexec/gnubin:$PATH"
-        /opt/homebrew/opt/bash/bin/bash ./sysroot.sh
+        eval "$(brew --env)"
+        bash ./sysroot.sh
         mkdir -p apt && cd apt
         curl -L "http://apt.saurik.com/debs/apt7-lib_0.7.25.3-14_iphoneos-arm.deb" | ar -x -
         tar -xzf data.tar.gz
