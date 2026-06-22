@@ -139,9 +139,8 @@ jobs:
     - name: Setup sysroot and version
       run: |
         echo '#define CYDIA_VERSION "1.1.35-1"' > Version.h
-        BREW_PREFIX=$(brew --prefix)
-        export PATH="$BREW_PREFIX/opt/gnu-tar/libexec/gnubin:$PATH"
-        $BREW_PREFIX/bin/bash ./sysroot.sh
+        export PATH="/opt/homebrew/opt/gnu-tar/libexec/gnubin:$PATH"
+        /opt/homebrew/opt/bash/bin/bash ./sysroot.sh
         git clone --depth 1 https://github.com/ElectraJailbreak/apt.git apt
 
     - name: Build Cydia
