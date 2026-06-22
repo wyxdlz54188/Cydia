@@ -1,4 +1,4 @@
-name: Build Cydia iOS
+name: Build Cydia iOS with Theos
 
 on:
   push:
@@ -9,7 +9,7 @@ jobs:
   build:
     name: Build Cydia (iOS)
     runs-on: macos-latest
-
+    
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -20,38 +20,37 @@ jobs:
 
     - name: Install dependencies
       run: |
-        brew install bash make dpkg ldid wget xz
+        brew install make dpkg ldid libffi
 
-    - name: Prepare sysroot
+    - name: Setup Theos
       run: |
-        BASH_PATH=$(brew --prefix bash)/bin/bash
-        $BASH_PATH ./sysroot.sh
+        git clone --recursive --depth 1 https://github.com/theos/theos.git $HOME/theos
+        git clone --recursive --depth 1 https://github.com/theos/sdks.git $HOME/theos/sdks
+        echo "THEOS=$HOME/theos" >> $GITHUB_ENV
+        echo "$HOME/theos/bin" >> $GITHUB_PATH
+
+    - name: Download iOS SDK
+      run: |
+        echo "Downloading iOS SDK..."
+        cd $THEOS/sdks
+        curl -L -o iPhoneOS16.2.sdk.tar.xz "https://github.com/theos/sdks/raw/master/iPhoneOS16.2.sdk.tar.xz"
+        tar -xf iPhoneOS16.2.sdk.tar.xz
+        rm iPhoneOS16.2.sdk.tar.xz
+        ls -la $THEOS/sdks/
 
     - name: Build Cydia
       run: |
-        export PATH="/opt/homebrew/bin:$PATH"
+        export THEOS="$HOME/theos"
+        export PATH="$THEOS/bin:$PATH"
         export LANG=C
-        gmake -j$(sysctl -n hw.ncpu)
+        make package
 
-    - name: Build cydo, postinst, cfversion, setnsfpn
+    - name: List packages
       run: |
-        export PATH="/opt/homebrew/bin:$PATH"
-        gmake cydo postinst cfversion setnsfpn
+        ls -la packages/
 
-    - name: Package Cydia
-      run: |
-        export PATH="/opt/homebrew/bin:$PATH"
-        gmake package
-        ls -la debs/
-
-    - name: Upload cydia deb
+    - name: Upload Cydia deb
       uses: actions/upload-artifact@v4
       with:
         name: cydia-deb
-        path: debs/cydia_*.deb
-
-    - name: Upload cydia-lproj deb
-      uses: actions/upload-artifact@v4
-      with:
-        name: cydia-lproj-deb
-        path: debs/cydia-lproj_*.deb
+        path: packages/*.deb
