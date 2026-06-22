@@ -164,6 +164,28 @@ jobs:
       run: |
         echo '#define CYDIA_VERSION "1.1.35-1"' > Version.h
 
+    - name: Download APT source
+      run: |
+        echo "=== Downloading apt7 source ==="
+        curl -L -o /tmp/apt7_0.7.25.3.orig.tar.gz \
+          "http://archive.ubuntu.com/ubuntu/pool/main/a/apt/apt_0.7.25.3.orig.tar.gz" || \
+        curl -L -o /tmp/apt7_0.7.25.3.orig.tar.gz \
+          "http://snapshot.debian.org/archive/debian/20120101T000000Z/pool/main/a/apt/apt_0.7.25.3.tar.gz" || \
+        curl -L -o /tmp/apt7_0.7.25.3.orig.tar.gz \
+          "https://salsa.debian.org/apt-team/apt/-/archive/0.7.25.3/apt-0.7.25.3.tar.gz"
+        if [ -f /tmp/apt7_0.7.25.3.orig.tar.gz ] && [ -s /tmp/apt7_0.7.25.3.orig.tar.gz ]; then
+          tar -xzf /tmp/apt7_0.7.25.3.orig.tar.gz -C /tmp/
+          APT_SRC=$(find /tmp -maxdepth 1 -name "apt*" -type d | head -1)
+          if [ -d "$APT_SRC" ]; then
+            cp -r "$APT_SRC/apt-pkg" apt/
+            echo "APT source copied from $APT_SRC"
+            ls apt/apt-pkg/ | head -20
+          fi
+        else
+          echo "Failed to download APT source"
+          exit 1
+        fi
+
     - name: Disable armv6 build
       run: |
         sed -i '' '114,119s/^/#/' makefile
