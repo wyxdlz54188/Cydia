@@ -1,4 +1,4 @@
-name: Build Cydia iOS
+name: Build Cydia iOS 6.1.3
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
 
 jobs:
   build:
-    name: Build Cydia (iOS)
+    name: Build Cydia (iOS 6.1.3 armv6)
     runs-on: macos-latest
     
     steps:
@@ -19,7 +19,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        brew install make dpkg libffi ldid
+        brew install make dpkg libffi ldid wget xz
 
     - name: Setup Theos
       run: |
@@ -27,59 +27,97 @@ jobs:
         echo "THEOS=$HOME/theos" >> $GITHUB_ENV
         echo "$HOME/theos/bin" >> $GITHUB_PATH
         
-    - name: Download iOS SDK
+    - name: Download iOS 6.1.3 SDK
       run: |
         mkdir -p $THEOS/sdks
-        echo "=== Downloading iPhoneOS SDK ==="
+        echo "=== Downloading iPhoneOS6.1.3 SDK ==="
         cd /tmp
-        curl -L -o iPhoneOS16.2.sdk.tar.xz "https://github.com/wyxdlz54188/Old_IOS_TERM/releases/download/sdk-v1.0/iPhoneOS16.2.sdk.tar.xz" || {
-          echo "Failed to download from Old_IOS_TERM, trying alternative..."
-          curl -L -o iPhoneOS16.2.sdk.tar.xz "https://github.com/xybp888/iOS-SDKs/archive/refs/heads/master.tar.gz" && \
-          tar -xf master.tar.gz && mv iOS-SDKs-master/iPhoneOS16.2.sdk $THEOS/sdks/ && rm -rf iOS-SDKs-master master.tar.gz || \
-          echo "SDK download failed, will try with available SDK"
+        curl -L -o iPhoneOS6.1.3.sdk.tar.xz "https://github.com/wyxdlz54188/Old_IOS_TERM/releases/download/sdk-v1.0/iPhoneOS6.1.3.sdk.tar.xz" || {
+          echo "Download from Old_IOS_TERM failed, trying alternative..."
+          curl -L -o iOS-SDK-6.1.3.tar.bz2 "https://github.com/theos/sdks/raw/master/iPhoneOS6.1.3.sdk.tar.bz2" || {
+            echo "All SDK downloads failed!"
+            exit 1
+          }
+          tar -xjf iOS-SDK-6.1.3.tar.bz2
+          mv iPhoneOS6.1.3.sdk $THEOS/sdks/
+          rm iOS-SDK-6.1.3.tar.bz2
         }
         
-        # Check what's in the download
-        ls -la $THEOS/sdks/ 2>/dev/null || echo "No SDK found in THEOS/sdks"
-        
-        # If no SDK downloaded, check available Xcode SDKs
-        if [ ! -d "$THEOS/sdks/iPhoneOS16.2.sdk" ]; then
-          echo "Using Xcode's built-in iOS SDK instead..."
-          SDK_PATH=$(xcodebuild -sdk iphoneos -version Path 2>/dev/null || echo "")
-          if [ -n "$SDK_PATH" ]; then
-            echo "Found SDK at: $SDK_PATH"
-            # Extract and copy to THEOS for reference
-            SDK_NAME=$(basename "$SDK_PATH" .sdk)
-            echo "SDK will be used from: $SDK_PATH"
-            echo "Available SDKs:"
-            xcodebuild -showsdks
-          fi
+        # Verify SDK
+        if [ -d "$THEOS/sdks/iPhoneOS6.1.3.sdk" ]; then
+          echo "=== SDK successfully installed ==="
+          ls -la $THEOS/sdks/
+          echo ""
+          echo "SDK Contents:"
+          ls $THEOS/sdks/iPhoneOS6.1.3.sdk/ | head -10
+        else
+          echo "SDK installation failed!"
+          ls -la $THEOS/sdks/ || echo "No SDKs found"
+          exit 1
         fi
-        echo ""
-        echo "=== Final SDKs list ==="
-        ls -la $THEOS/sdks/ 2>/dev/null
+
+    - name: Create sysroot
+      run: |
+        echo "=== Creating sysroot from iOS 6.1.3 SDK ==="
+        SDK="$HOME/theos/sdks/iPhoneOS6.1.3.sdk"
         
+        mkdir -p sysroot/usr/include
+        mkdir -p sysroot/usr/lib
+        
+        # Copy libc and essentials
+        cp -r "$SDK/usr/lib/system" sysroot/usr/lib/
+        cp -r "$SDK/usr/lib/libSystem.*" sysroot/usr/lib/ 2>/dev/null || true
+        cp -r "$SDK/usr/lib/libcrypto.*" sysroot/usr/lib/ 2>/dev/null || true
+        cp -r "$SDK/usr/lib/libssl.*" sysroot/usr/lib/ 2>/dev/null || true
+        cp -r "$SDK/usr/lib/libsqlite3.*" sysroot/usr/lib/ 2>/dev/null || true
+        cp -r "$SDK/usr/lib/libz.*" sysroot/usr/lib/ 2>/dev/null || true
+        cp -r "$SDK/usr/lib/libicucore.*" sysroot/usr/lib/ 2>/dev/null || true
+        
+        # Copy important frameworks
+        cp -r "$SDK/System/Library/Frameworks/CoreFoundation.framework" sysroot/System/Library/Frameworks/ 2>/dev/null || \
+          mkdir -p sysroot/System/Library/Frameworks/
+        cp -r "$SDK/System/Library/Frameworks/Foundation.framework" sysroot/System/Library/Frameworks/ 2>/dev/null || true
+        cp -r "$SDK/System/Library/Frameworks/UIKit.framework" sysroot/System/Library/Frameworks/ 2>/dev/null || true
+        cp -r "$SDK/System/Library/Frameworks/CoreGraphics.framework" sysroot/System/Library/Frameworks/ 2>/dev/null || true
+        cp -r "$SDK/System/Library/Frameworks/QuartzCore.framework" sysroot/System/Library/Frameworks/ 2>/dev/null || true
+        
+        echo "=== sysroot created ==="
+        ls -la sysroot/usr/lib/ | head -10
+        ls -la sysroot/System/Library/Frameworks/ | head -10
+
+    - name: Set version
+      run: |
+        # Create a default version if no tags exist
+        if ! git describe --tags --match="v*" &>/dev/null; then
+          echo "No tags found, using default version"
+          echo '#define CYDIA_VERSION "1.1.35-1"' > Version.h
+        fi
+
     - name: Build Cydia
       run: |
         export THEOS="$HOME/theos"
         export PATH="$THEOS/bin:$PATH"
         export LANG=C
         
-        # Get the actual SDK path from Xcode
-        export SDKROOT=$(xcodebuild -sdk iphoneos -version Path)
-        export DEVELOPER_DIR=$(xcode-select -p)
+        # Use iOS 6.1.3 SDK
+        export SDKROOT="$HOME/theos/sdks/iPhoneOS6.1.3.sdk"
+        export DEVELOPER_DIR="$HOME/theos"
         
-        echo "Building with:"
-        echo "  THEOS=$THEOS"
+        echo "Building Cydia for iOS 6.1.3 (armv6/arm64)"
         echo "  SDKROOT=$SDKROOT"
-        echo "  DEVELOPER_DIR=$DEVELOPER_DIR"
-        echo "  ARCHS=arm64"
+        echo "  THEOS=$THEOS"
         
-        make package
-        ls -la packages/
+        # Build with gmake (GNU make)
+        gmake package V=1
+        echo ""
+        echo "=== Build artifacts ==="
+        ls -la packages/ || echo "No packages directory"
+        ls -la debs/ 2>/dev/null || echo "No debs directory"
 
     - name: Upload Cydia deb
       uses: actions/upload-artifact@v4
       with:
-        name: cydia-deb
-        path: packages/*.deb
+        name: cydia-ios6.1.3
+        path: |
+          packages/*.deb
+          debs/*.deb
