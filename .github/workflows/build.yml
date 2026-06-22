@@ -145,6 +145,9 @@ jobs:
         cp -r "$SDK/usr/lib/libicucore.*" sysroot/usr/lib/ 2>/dev/null || true
         mkdir -p sysroot/System/Library/Frameworks
         cp -r "$SDK/System/Library/Frameworks"/* sysroot/System/Library/Frameworks/ 2>/dev/null || true
+        # Copy ICU headers from SDK
+        mkdir -p sysroot/usr/include/unicode
+        cp -r "$SDK/usr/include/unicode"/* sysroot/usr/include/unicode/ 2>/dev/null || true
 
     - name: Fix WebCoreThread dependency
       run: |
