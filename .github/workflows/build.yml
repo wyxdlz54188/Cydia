@@ -170,16 +170,26 @@ jobs:
         curl -L --connect-timeout 60 -o /tmp/apt-src.tar.gz \
           "http://old-releases.ubuntu.com/ubuntu/pool/main/a/apt/apt_0.7.25.3ubuntu7.tar.gz"
         tar -xzf /tmp/apt-src.tar.gz -C /tmp/
+        echo "=== Extracted contents ==="
+        ls /tmp/ | head -10
         APT_DIR=$(find /tmp -maxdepth 2 -name "apt-pkg" -type d 2>/dev/null | head -1)
+        echo "APT_DIR=$APT_DIR"
         if [ -n "$APT_DIR" ]; then
           SRC_DIR=$(dirname "$APT_DIR")
           cp -r "$SRC_DIR"/* apt/
-          echo "APT source copied from $SRC_DIR"
-          ls apt/apt-pkg/*.h 2>/dev/null | head -5
         else
-          echo "Failed to find apt-pkg in extracted source"
-          exit 1
+          # Try alternative structure: the tarball extracts to apt-0.7.25.3/
+          SRC_DIR=$(ls -d /tmp/apt-* 2>/dev/null | head -1)
+          echo "SRC_DIR=$SRC_DIR"
+          if [ -n "$SRC_DIR" ] && [ -d "$SRC_DIR/apt-pkg" ]; then
+            cp -r "$SRC_DIR"/* apt/
+          else
+            echo "Failed to find apt-pkg"
+            exit 1
+          fi
         fi
+        echo "=== Copied apt contents ==="
+        ls apt/apt-pkg/*.h 2>/dev/null | head -5 || echo "No .h files"
 
     - name: Disable armv6 build
       run: |
