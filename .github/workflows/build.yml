@@ -1,0 +1,57 @@
+name: Build Cydia iOS
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Cydia (iOS)
+    runs-on: macos-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        fetch-depth: 0
+        fetch-tags: true
+
+    - name: Install dependencies
+      run: |
+        brew install bash make dpkg ldid wget xz
+
+    - name: Prepare sysroot
+      run: |
+        export PATH="/opt/homebrew/bin:$PATH"
+        bash ./sysroot.sh
+
+    - name: Build Cydia
+      run: |
+        export PATH="/opt/homebrew/bin:$PATH"
+        export LANG=C
+        gmake -j$(sysctl -n hw.ncpu)
+
+    - name: Build cydo, postinst, cfversion, setnsfpn
+      run: |
+        export PATH="/opt/homebrew/bin:$PATH"
+        gmake cydo postinst cfversion setnsfpn
+
+    - name: Package Cydia
+      run: |
+        export PATH="/opt/homebrew/bin:$PATH"
+        gmake package
+        ls -la debs/
+
+    - name: Upload cydia deb
+      uses: actions/upload-artifact@v4
+      with:
+        name: cydia-deb
+        path: debs/cydia_*.deb
+
+    - name: Upload cydia-lproj deb
+      uses: actions/upload-artifact@v4
+      with:
+        name: cydia-lproj-deb
+        path: debs/cydia-lproj_*.deb
