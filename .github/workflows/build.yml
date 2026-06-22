@@ -184,17 +184,17 @@ jobs:
     - name: Fix IOKit compatibility
       run: |
         sed -i '' 's/kIOMasterPortDefault/kIOMainPortDefault/g' CyteKit/CyteObject.mm
-        python3 -c "
-import re
-with open('makefile', 'r') as f:
-    content = f.read()
-content = content.replace(
-    'cycc += -isysroot \$(sdk)',
-    'cycc += -F sysroot/System/Library/Frameworks\ncycc += -F sysroot/System/Library/PrivateFrameworks\ncycc += -isysroot \$(sdk)'
-)
-with open('makefile', 'w') as f:
-    f.write(content)
-"
+        cat > /tmp/fix_make.py << 'PYEOF'
+        with open('makefile', 'r') as f:
+            content = f.read()
+        content = content.replace(
+            'cycc += -isysroot $(sdk)',
+            'cycc += -F sysroot/System/Library/Frameworks\ncycc += -F sysroot/System/Library/PrivateFrameworks\ncycc += -isysroot $(sdk)'
+        )
+        with open('makefile', 'w') as f:
+            f.write(content)
+        PYEOF
+        python3 /tmp/fix_make.py
 
     - name: Build Cydia
       run: |
