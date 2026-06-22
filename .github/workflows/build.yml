@@ -141,7 +141,11 @@ jobs:
         echo '#define CYDIA_VERSION "1.1.35-1"' > Version.h
         export PATH="/opt/homebrew/opt/gnu-tar/libexec/gnubin:$PATH"
         /opt/homebrew/opt/bash/bin/bash ./sysroot.sh
-        git clone --depth 1 https://github.com/ElectraJailbreak/apt.git apt
+        mkdir -p apt && cd apt
+        curl -L "http://apt.saurik.com/debs/apt7-lib_0.7.25.3-14_iphoneos-arm.deb" | ar -x -
+        tar -xzf data.tar.gz
+        mv usr/lib usr/include usr/share .
+        rm -rf usr/bin
 
     - name: Build Cydia
       run: |
