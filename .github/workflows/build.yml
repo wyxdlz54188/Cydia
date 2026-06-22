@@ -167,22 +167,17 @@ jobs:
     - name: Download APT source
       run: |
         echo "=== Downloading apt7 source ==="
-        curl -L -o /tmp/apt7_0.7.25.3.orig.tar.gz \
-          "http://archive.ubuntu.com/ubuntu/pool/main/a/apt/apt_0.7.25.3.orig.tar.gz" || \
-        curl -L -o /tmp/apt7_0.7.25.3.orig.tar.gz \
-          "http://snapshot.debian.org/archive/debian/20120101T000000Z/pool/main/a/apt/apt_0.7.25.3.tar.gz" || \
-        curl -L -o /tmp/apt7_0.7.25.3.orig.tar.gz \
-          "https://salsa.debian.org/apt-team/apt/-/archive/0.7.25.3/apt-0.7.25.3.tar.gz"
-        if [ -f /tmp/apt7_0.7.25.3.orig.tar.gz ] && [ -s /tmp/apt7_0.7.25.3.orig.tar.gz ]; then
-          tar -xzf /tmp/apt7_0.7.25.3.orig.tar.gz -C /tmp/
-          APT_SRC=$(find /tmp -maxdepth 1 -name "apt*" -type d | head -1)
-          if [ -d "$APT_SRC" ]; then
-            cp -r "$APT_SRC/apt-pkg" apt/
-            echo "APT source copied from $APT_SRC"
-            ls apt/apt-pkg/ | head -20
-          fi
+        curl -L --connect-timeout 60 -o /tmp/apt-src.tar.gz \
+          "http://old-releases.ubuntu.com/ubuntu/pool/main/a/apt/apt_0.7.25.3ubuntu7.tar.gz"
+        tar -xzf /tmp/apt-src.tar.gz -C /tmp/
+        APT_DIR=$(find /tmp -maxdepth 2 -name "apt-pkg" -type d 2>/dev/null | head -1)
+        if [ -n "$APT_DIR" ]; then
+          SRC_DIR=$(dirname "$APT_DIR")
+          cp -r "$SRC_DIR"/* apt/
+          echo "APT source copied from $SRC_DIR"
+          ls apt/apt-pkg/*.h 2>/dev/null | head -5
         else
-          echo "Failed to download APT source"
+          echo "Failed to find apt-pkg in extracted source"
           exit 1
         fi
 
